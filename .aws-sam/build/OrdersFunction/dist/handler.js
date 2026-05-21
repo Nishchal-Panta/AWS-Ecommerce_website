@@ -8,32 +8,33 @@ const crypto_1 = require("crypto");
 const CARTS_TABLE = process.env.CARTS_TABLE ?? "ecommerce-carts";
 const handler = async (event) => {
     try {
-        if (event.httpMethod === "OPTIONS")
+        const method = event.requestContext.http.method;
+        if (method === "OPTIONS")
             return (0, shared_1.response)(200, {});
-        const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
+        const claims = event.requestContext.authorizer?.jwt?.claims ?? {};
         const userId = claims.sub;
         const email = claims.email;
         if (!userId)
             return (0, shared_1.response)(401, { error: "Unauthorized" });
         const db = await (0, shared_1.getDb)();
-        if (event.httpMethod === "GET" && !event.pathParameters?.id) {
+        const id = event.pathParameters?.id;
+        if (method === "GET" && !id) {
             const [rows] = await db.execute("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC", [userId]);
             return (0, shared_1.response)(200, { orders: rows });
         }
-        if (event.httpMethod === "GET" && event.pathParameters?.id) {
-            const orderId = event.pathParameters.id;
-            const [rows] = await db.execute("SELECT * FROM orders WHERE id = ? AND user_id = ?", [orderId, userId]);
+        if (method === "GET" && id) {
+            const [rows] = await db.execute("SELECT * FROM orders WHERE id = ? AND user_id = ?", [id, userId]);
             if (!rows.length)
                 return (0, shared_1.response)(404, { error: "Order not found" });
-            const [items] = await db.execute("SELECT * FROM order_items WHERE order_id = ?", [orderId]);
+            const [items] = await db.execute("SELECT * FROM order_items WHERE order_id = ?", [id]);
             return (0, shared_1.response)(200, { ...rows[0], items });
         }
-        if (event.httpMethod === "POST") {
+        if (method === "POST") {
             const body = JSON.parse(event.body ?? "{}");
             const items = body.items;
             if (!items?.length)
                 return (0, shared_1.response)(400, { error: "Order must have at least one item" });
-            const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+            const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
             const orderId = (0, crypto_1.randomUUID)();
             await db.execute("INSERT INTO orders (id, user_id, status, total, currency) VALUES (?, ?, 'pending', ?, 'USD')", [orderId, userId, total]);
             for (const item of items) {

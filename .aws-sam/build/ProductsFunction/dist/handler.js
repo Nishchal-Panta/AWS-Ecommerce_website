@@ -7,7 +7,7 @@ const crypto_1 = require("crypto");
 const TABLE = process.env.PRODUCTS_TABLE ?? "ecommerce-products";
 const handler = async (event) => {
     try {
-        const method = event.httpMethod;
+        const method = event.requestContext.http.method;
         const id = event.pathParameters?.id;
         if (method === "OPTIONS")
             return (0, shared_1.response)(200, {});
@@ -32,7 +32,7 @@ const handler = async (event) => {
             return (0, shared_1.response)(200, result.Item);
         }
         if (method === "POST") {
-            const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
+            const claims = event.requestContext.authorizer?.jwt?.claims ?? {};
             const groups = JSON.parse(claims["cognito:groups"] ?? "[]");
             if (!groups.includes("admin"))
                 return (0, shared_1.response)(403, { error: "Admin only" });
@@ -49,7 +49,7 @@ const handler = async (event) => {
             return (0, shared_1.response)(201, product);
         }
         if (method === "PUT" && id) {
-            const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
+            const claims = event.requestContext.authorizer?.jwt?.claims ?? {};
             const groups = JSON.parse(claims["cognito:groups"] ?? "[]");
             if (!groups.includes("admin"))
                 return (0, shared_1.response)(403, { error: "Admin only" });
@@ -77,7 +77,7 @@ const handler = async (event) => {
             return (0, shared_1.response)(200, result.Attributes);
         }
         if (method === "DELETE" && id) {
-            const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
+            const claims = event.requestContext.authorizer?.jwt?.claims ?? {};
             const groups = JSON.parse(claims["cognito:groups"] ?? "[]");
             if (!groups.includes("admin"))
                 return (0, shared_1.response)(403, { error: "Admin only" });

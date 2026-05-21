@@ -1,21 +1,16 @@
 {
   "name": "@ecommerce/shared",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "build": "tsc"
-  },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.0.0",
-    "@aws-sdk/lib-dynamodb": "^3.0.0",
-    "@aws-sdk/client-sqs": "^3.0.0",
-    "@aws-sdk/client-ses": "^3.0.0",
-    "@aws-sdk/client-ssm": "^3.0.0",
-    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-dynamodb": "3.478.0",
+    "@aws-sdk/lib-dynamodb": "3.478.0",
+    "@aws-sdk/client-sqs": "3.478.0",
+    "@aws-sdk/client-ses": "3.478.0",
+    "@aws-sdk/client-ssm": "3.478.0",
+    "@aws-sdk/client-s3": "3.478.0",
+    "@smithy/core": "^2.0.0",
+    "@smithy/smithy-client": "^3.0.0",
+    "@smithy/types": "^3.0.0",
     "mysql2": "^3.0.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
   }
 }

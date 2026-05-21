@@ -1,14 +1,15 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { PutCommand, GetCommand, DeleteCommand, ScanCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, response } from "./shared";
 import { randomUUID } from "crypto";
 
 const TABLE = process.env.PRODUCTS_TABLE ?? "ecommerce-products";
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
   try {
-    const method = event.httpMethod;
+    const method = event.requestContext.http.method;
     const id = event.pathParameters?.id;
+
     if (method === "OPTIONS") return response(200, {});
 
     if (method === "GET" && !id) {
@@ -33,8 +34,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     if (method === "POST") {
-      const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
-      const groups: string[] = JSON.parse(claims["cognito:groups"] ?? "[]");
+      const claims = (event.requestContext as any).authorizer?.jwt?.claims ?? {};
+      const groups: string[] = JSON.parse((claims["cognito:groups"] as string) ?? "[]");
       if (!groups.includes("admin")) return response(403, { error: "Admin only" });
       const body = JSON.parse(event.body ?? "{}");
       if (!body.name || !body.price || !body.category) return response(400, { error: "name, price and category required" });
@@ -49,8 +50,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     if (method === "PUT" && id) {
-      const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
-      const groups: string[] = JSON.parse(claims["cognito:groups"] ?? "[]");
+      const claims = (event.requestContext as any).authorizer?.jwt?.claims ?? {};
+      const groups: string[] = JSON.parse((claims["cognito:groups"] as string) ?? "[]");
       if (!groups.includes("admin")) return response(403, { error: "Admin only" });
       const body = JSON.parse(event.body ?? "{}");
       const expr: string[] = [];
@@ -74,8 +75,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     if (method === "DELETE" && id) {
-      const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};
-      const groups: string[] = JSON.parse(claims["cognito:groups"] ?? "[]");
+      const claims = (event.requestContext as any).authorizer?.jwt?.claims ?? {};
+      const groups: string[] = JSON.parse((claims["cognito:groups"] as string) ?? "[]");
       if (!groups.includes("admin")) return response(403, { error: "Admin only" });
       await ddb.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
       return response(200, { message: "Product deleted" });

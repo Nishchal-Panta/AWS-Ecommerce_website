@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[22016,["/_next/static/chunks/0bu26nsnp38ja.js","/_next/static/chunks/0fu_cw.yhdhsw.js"],""]
+3:I[97367,["/_next/static/chunks/0bu26nsnp38ja.js","/_next/static/chunks/0fu_cw.yhdhsw.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":[["$","div",null,{"className":"max-w-6xl mx-auto px-4 py-20 text-center","children":[["$","h1",null,{"className":"text-5xl font-bold text-gray-900 mb-6","children":["Welcome to ",["$","span",null,{"className":"text-indigo-600","children":"ShopAWS"}]]}],["$","p",null,{"className":"text-xl text-gray-500 mb-10 max-w-xl mx-auto","children":"A full-stack e-commerce platform built entirely on AWS free tier."}],["$","$L2",null,{"href":"/products","className":"inline-block bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition","children":"Browse Products"}]]}],null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"lY6XT3w7WTWZ-ikW4KyW-"}
+5:null

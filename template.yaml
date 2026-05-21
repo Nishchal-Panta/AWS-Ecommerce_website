@@ -15,7 +15,7 @@ Globals:
         PRODUCTS_TABLE: ecommerce-products
         CARTS_TABLE: ecommerce-carts
         ORDERS_TABLE: ecommerce-orders
-        FRONTEND_URL: "*"
+        FRONTEND_URL: "https://d2bmtm5fjdmhwb.cloudfront.net"
 
 Parameters:
   UserPoolId:
@@ -42,6 +42,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - "http://localhost:3000"
+          - "https://d2bmtm5fjdmhwb.cloudfront.net"
         AllowHeaders:
           - Content-Type
           - Authorization
@@ -52,6 +53,7 @@ Resources:
           - DELETE
           - OPTIONS
         MaxAge: 600
+        AllowCredentials: false
       Auth:
         DefaultAuthorizer: CognitoAuthorizer
         Authorizers:

@@ -7,17 +7,18 @@ const TABLE = process.env.CARTS_TABLE ?? "ecommerce-carts";
 const TTL_DAYS = 7;
 const handler = async (event) => {
     try {
-        if (event.httpMethod === "OPTIONS")
+        const method = event.requestContext.http.method;
+        if (method === "OPTIONS")
             return (0, shared_1.response)(200, {});
-        const userId = event.requestContext?.authorizer?.jwt?.claims?.sub ?? null;
+        const userId = event.requestContext.authorizer?.jwt?.claims?.sub ?? null;
         if (!userId)
             return (0, shared_1.response)(401, { error: "Unauthorized" });
         const ttl = Math.floor(Date.now() / 1000) + TTL_DAYS * 86400;
-        if (event.httpMethod === "GET") {
+        if (method === "GET") {
             const result = await shared_1.ddb.send(new lib_dynamodb_1.GetCommand({ TableName: TABLE, Key: { userId } }));
             return (0, shared_1.response)(200, result.Item ?? { userId, items: [], updatedAt: new Date().toISOString() });
         }
-        if (event.httpMethod === "POST") {
+        if (method === "POST") {
             const body = JSON.parse(event.body ?? "{}");
             if (!body.productId || !body.quantity)
                 return (0, shared_1.response)(400, { error: "productId and quantity required" });
@@ -37,7 +38,7 @@ const handler = async (event) => {
             await shared_1.ddb.send(new lib_dynamodb_1.PutCommand({ TableName: TABLE, Item: updated }));
             return (0, shared_1.response)(200, updated);
         }
-        if (event.httpMethod === "DELETE") {
+        if (method === "DELETE") {
             await shared_1.ddb.send(new lib_dynamodb_1.DeleteCommand({ TableName: TABLE, Key: { userId } }));
             return (0, shared_1.response)(200, { message: "Cart cleared" });
         }
