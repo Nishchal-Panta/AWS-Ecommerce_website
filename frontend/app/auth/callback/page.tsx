@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getCurrentUser, getAuthConfig } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/auth-store';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://150ouvhn24.execute-api.ap-south-1.amazonaws.com/prod';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -33,31 +34,35 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // TODO: In production, exchange code for token on backend
-        // For now, we'll use a mock token from the code
-        // Production flow:
-        // 1. Send code to backend auth/exchange endpoint
-        // 2. Backend exchanges code for token with Cognito
-        // 3. Backend returns JWT token to frontend
-        // 4. Frontend stores token in auth store
+        // Exchange authorization code for tokens on backend
+        const exchangeResponse = await fetch(`${API_URL}/auth/exchange`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code,
+            redirectUri: typeof window !== 'undefined' ? window.location.origin + '/auth/callback' : '',
+          }),
+        });
 
-        // Mock implementation (replace with real backend call)
-        const mockToken = `mock_token_${code}`;
+        if (!exchangeResponse.ok) {
+          const errorData = await exchangeResponse.json();
+          throw new Error(errorData.error || 'Failed to exchange code for token');
+        }
+
+        const { idToken, accessToken, user } = await exchangeResponse.json();
 
         // Store token in session storage
-        sessionStorage.setItem('auth_token', mockToken);
+        sessionStorage.setItem('auth_token', accessToken);
 
-        // Mock user (in production, get from decoded JWT)
-        const mockUser = {
-          userId: 'mock-user-id',
-          email: 'user@example.com',
-        };
-
-        setUser(mockUser, mockToken);
+        // Store user info
+        setUser(user, accessToken);
 
         // Redirect to home page
         router.push('/');
       } catch (err) {
+        console.error('Auth callback error:', err);
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setLoading(false);
       }
