@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "E-commerce platform — SAM template"
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 15
+    MemorySize: 128
+    Layers:
+      - !Ref SharedLayer
+    Environment:
+      Variables:
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+        PRODUCTS_TABLE: ecommerce-products
+        CARTS_TABLE: ecommerce-carts
+        ORDERS_TABLE: ecommerce-orders
+        FRONTEND_URL: "*"
+
+Parameters:
+  UserPoolId:
+    Type: String
+    Default: "ap-south-1_mLsRv6Cu4"
+  UserPoolClientId:
+    Type: String
+    Default: "jvr7ucu0jvbrf9u7g07b26k7t"
+
+Resources:
+
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ecommerce-shared
+      ContentUri: backend/layers/shared/
+      CompatibleRuntimes: [nodejs20.x]
+      RetentionPolicy: Delete
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - "http://localhost:3000"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub "https://cognito-idp.ap-south-1.amazonaws.com/${UserPoolId}"
+              audience:
+                - !Ref UserPoolClientId
+
+  ProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecommerce-products
+      CodeUri: backend/functions/products/
+      Handler: dist/handler.handler
+      Role: !Sub "arn:aws:iam::379992420751:role/ecommerce-products-role"
+      Events:
+        ListProducts:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /products
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        GetProduct:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /products/{id}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        CreateProduct:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /products
+            Method: POST
+        UpdateProduct:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /products/{id}
+            Method: PUT
+        DeleteProduct:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /products/{id}
+            Method: DELETE
+
+  CartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecommerce-cart
+      CodeUri: backend/functions/cart/
+      Handler: dist/handler.handler
+      Role: !Sub "arn:aws:iam::379992420751:role/ecommerce-cart-role"
+      Events:
+        GetCart:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /cart
+            Method: GET
+        UpdateCart:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /cart
+            Method: POST
+        ClearCart:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /cart
+            Method: DELETE
+
+  OrdersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecommerce-orders
+      CodeUri: backend/functions/orders/
+      Handler: dist/handler.handler
+      Role: !Sub "arn:aws:iam::379992420751:role/ecommerce-orders-role"
+      Events:
+        ListOrders:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /orders
+            Method: GET
+        GetOrder:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /orders/{id}
+            Method: GET
+        CreateOrder:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /orders
+            Method: POST
+
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecommerce-auth
+      CodeUri: backend/functions/auth/
+      Handler: dist/handler.handler
+      Role: !Sub "arn:aws:iam::379992420751:role/ecommerce-auth-role"
+      Events:
+        SyncUser:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /auth/sync
+            Method: POST
+        GetMe:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /auth/me
+            Method: GET
+
+  NotifyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecommerce-notify
+      CodeUri: backend/functions/notify/
+      Handler: dist/handler.handler
+      Role: !Sub "arn:aws:iam::379992420751:role/ecommerce-notify-role"
+      Events:
+        OrderQueue:
+          Type: SQS
+          Properties:
+            Queue: !Sub "arn:aws:sqs:ap-south-1:379992420751:ecommerce-orders"
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.ap-south-1.amazonaws.com/prod"
+    Export:
+      Name: ecommerce-api-url
