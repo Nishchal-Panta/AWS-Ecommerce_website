@@ -1,0 +1,16 @@
+{
+  "name": "aws-ecommerce",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend/layers/shared/nodejs",
+    "backend/functions/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspaces --if-present",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:frontend": "bash scripts/deploy-frontend.sh"
+  }
+}

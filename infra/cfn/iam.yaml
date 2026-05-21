@@ -1,0 +1,189 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "IAM roles — one per Lambda function"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: ecommerce
+  AccountId:
+    Type: String
+
+Resources:
+
+  SSMReadPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${ProjectName}-ssm-read"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ssm:GetParameter, ssm:GetParameters]
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AccountId}:parameter/${ProjectName}/*"
+
+  CloudWatchPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${ProjectName}-cloudwatch"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+            Resource: "*"
+
+  VPCNetworkPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${ProjectName}-vpc-network"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ec2:CreateNetworkInterface, ec2:DescribeNetworkInterfaces, ec2:DeleteNetworkInterface]
+            Resource: "*"
+
+  ProductsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-products-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref SSMReadPolicy, !Ref CloudWatchPolicy, !Ref VPCNetworkPolicy]
+      Policies:
+        - PolicyName: dynamo-products
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query, dynamodb:Scan]
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AccountId}:table/${ProjectName}-products"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AccountId}:table/${ProjectName}-products/index/*"
+        - PolicyName: s3-images
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:PutObject, s3:DeleteObject, s3:GetObject]
+                Resource: !Sub "arn:aws:s3:::${ProjectName}-images-${AccountId}/*"
+
+  CartRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-cart-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref SSMReadPolicy, !Ref CloudWatchPolicy]
+      Policies:
+        - PolicyName: dynamo-cart
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AccountId}:table/${ProjectName}-carts"
+
+  OrdersRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-orders-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref SSMReadPolicy, !Ref CloudWatchPolicy, !Ref VPCNetworkPolicy]
+      Policies:
+        - PolicyName: sqs-orders
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [sqs:SendMessage, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AccountId}:${ProjectName}-orders*"
+        - PolicyName: dynamo-orders
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query]
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AccountId}:table/${ProjectName}-orders"
+
+  NotifyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-notify-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref SSMReadPolicy, !Ref CloudWatchPolicy]
+      Policies:
+        - PolicyName: ses-send
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [ses:SendEmail, ses:SendTemplatedEmail]
+                Resource: "*"
+        - PolicyName: sqs-consume
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AccountId}:${ProjectName}-orders*"
+
+  AuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-auth-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref SSMReadPolicy, !Ref CloudWatchPolicy]
+      Policies:
+        - PolicyName: cognito-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [cognito-idp:AdminGetUser, cognito-idp:ListUsers]
+                Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AccountId}:userpool/*"
+
+Outputs:
+  ProductsRoleArn:
+    Value: !GetAtt ProductsRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-products-role-arn"
+  CartRoleArn:
+    Value: !GetAtt CartRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-cart-role-arn"
+  OrdersRoleArn:
+    Value: !GetAtt OrdersRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-orders-role-arn"
+  NotifyRoleArn:
+    Value: !GetAtt NotifyRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-notify-role-arn"
+  AuthRoleArn:
+    Value: !GetAtt AuthRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-auth-role-arn"
