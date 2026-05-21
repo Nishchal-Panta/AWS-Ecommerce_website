@@ -16,14 +16,9 @@ aws sns subscribe \
   --notification-endpoint $EMAIL \
   $R
 
-echo "Setting Lambda reserved concurrency (cost guard)..."
-for fn in $FUNCTIONS; do
-  aws lambda put-function-concurrency \
-    --function-name $fn \
-    --reserved-concurrent-executions 10 \
-    $R
-  echo "Set concurrency=10 for $fn"
-done
+echo ""
+echo "⚠️  Skipping reserved concurrency (not needed for free tier)"
+echo ""
 
 echo "Creating Lambda error rate alarms..."
 for fn in $FUNCTIONS; do
@@ -40,9 +35,10 @@ for fn in $FUNCTIONS; do
     --evaluation-periods 1 \
     --alarm-actions $TOPIC_ARN \
     $R
-  echo "Alarm created for $fn"
+  echo "✓ Alarm created for $fn"
 done
 
+echo ""
 echo "Creating API Gateway 5xx alarm..."
 API_ID="150ouvhn24"
 aws cloudwatch put-metric-alarm \
@@ -58,7 +54,9 @@ aws cloudwatch put-metric-alarm \
   --evaluation-periods 1 \
   --alarm-actions $TOPIC_ARN \
   $R
+echo "✓ API Gateway 5xx alarm created"
 
+echo ""
 echo "Creating DynamoDB throttle alarm..."
 aws cloudwatch put-metric-alarm \
   --alarm-name "dynamodb-throttles" \
@@ -72,10 +70,12 @@ aws cloudwatch put-metric-alarm \
   --evaluation-periods 1 \
   --alarm-actions $TOPIC_ARN \
   $R
+echo "✓ DynamoDB throttle alarm created"
 
 echo ""
-echo "All alarms created. Check your email to confirm SNS subscription."
-echo "Listing alarms..."
+echo "✅ All alarms created successfully!"
+echo ""
+echo "📊 Listing alarms..."
 aws cloudwatch describe-alarms \
   --query "MetricAlarms[*].AlarmName" \
   --output table \
