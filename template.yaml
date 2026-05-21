@@ -16,6 +16,9 @@ Globals:
         CARTS_TABLE: ecommerce-carts
         ORDERS_TABLE: ecommerce-orders
         FRONTEND_URL: "https://d2bmtm5fjdmhwb.cloudfront.net"
+        COGNITO_DOMAIN: "ecommerce-nishchal.auth.ap-south-1.amazoncognito.com"
+        COGNITO_CLIENT_ID: "1i6c99jh9lqm56v8gv1rka5eeu"
+        COGNITO_REGION: "ap-south-1"
 
 Parameters:
   UserPoolId:
@@ -181,6 +184,24 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /auth/me
             Method: GET
+
+  ExchangeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecommerce-exchange
+      CodeUri: backend/functions/exchange/
+      Handler: dist/handler.handler
+      Role: !Sub "arn:aws:iam::379992420751:role/ecommerce-auth-role"
+      Timeout: 30
+      Events:
+        TokenExchange:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /auth/exchange
+            Method: POST
+            Auth:
+              Authorizer: NONE
 
   NotifyFunction:
     Type: AWS::Serverless::Function

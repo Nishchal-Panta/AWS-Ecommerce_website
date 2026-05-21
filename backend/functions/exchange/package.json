@@ -1,0 +1,11 @@
+{
+  "name": "@ecommerce/exchange",
+  "version": "1.0.0",
+  "main": "dist/handler.js",
+  "scripts": { "build": "tsc" },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/aws-lambda": "^8.10.0"
+  }
+}

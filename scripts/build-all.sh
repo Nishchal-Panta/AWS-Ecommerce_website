@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-FUNCTIONS="products cart orders notify auth"
+FUNCTIONS="products cart orders notify auth exchange"
 BASE=~/projects/aws-ecommerce/backend/functions
 
 for fn in $FUNCTIONS; do
